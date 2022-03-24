@@ -6,7 +6,7 @@ from sympy.core.containers import Tuple
 from sympy.core.expr import (ExprBuilder, unchanged, Expr,
     UnevaluatedExpr)
 from sympy.core.function import (Function, expand, WildFunction,
-    AppliedUndef, Derivative, diff)
+    AppliedUndef, Derivative, diff, Subs)
 from sympy.core.mul import Mul
 from sympy.core.numbers import (NumberSymbol, E, zoo, oo, Float, I,
     Rational, nan, Integer, Number, pi)
@@ -38,6 +38,7 @@ from sympy.simplify.radsimp import collect, radsimp
 from sympy.simplify.ratsimp import ratsimp
 from sympy.simplify.simplify import simplify, nsimplify
 from sympy.simplify.trigsimp import trigsimp
+from sympy.tensor.indexed import Indexed
 from sympy.physics.units import meter
 
 from sympy.testing.pytest import raises, XFAIL
@@ -656,6 +657,7 @@ def test_is_rational_function():
     assert (S.Infinity).is_rational_function() is False
     assert (S.NegativeInfinity).is_rational_function() is False
     assert (S.ComplexInfinity).is_rational_function() is False
+
 
 def test_is_meromorphic():
     f = a/x**2 + b + x + c*x**2
@@ -1338,6 +1340,9 @@ def test_extractions():
         x + y + (x + 1)*(x + y) + 3
     assert ((y + 1)*(x + 2*y + 1) + 3).extract_additively(y + 1) == \
         (x + 2*y)*(y + 1) + 3
+    assert (-x - x*I).extract_additively(-x) == -I*x
+    # extraction does not leave artificats, now
+    assert (4*x*(y + 1) + y).extract_additively(x) == x*(4*y + 3) + y
 
     n = Symbol("n", integer=True)
     assert (Integer(-3)).could_extract_minus_sign() is True
@@ -2192,8 +2197,21 @@ def test_non_string_equality():
 
 def test_21494():
     from sympy.testing.pytest import warns_deprecated_sympy
+
     with warns_deprecated_sympy():
         assert x.expr_free_symbols == {x}
+
+    with warns_deprecated_sympy():
+        assert Basic().expr_free_symbols == set()
+
+    with warns_deprecated_sympy():
+        assert S(2).expr_free_symbols == {S(2)}
+
+    with warns_deprecated_sympy():
+        assert Indexed("A", x).expr_free_symbols == {Indexed("A", x)}
+
+    with warns_deprecated_sympy():
+        assert Subs(x, x, 0).expr_free_symbols == set()
 
 
 def test_Expr__eq__iterable_handling():
